@@ -1,7 +1,7 @@
 @testable import URLEncodedForm
 import XCTest
 
-class FormURLEncodedSerializerTests: XCTestCase {
+class URLEncodedFormEncodedSerializerTests: XCTestCase {
     func testPercentEncoding() throws {
         let form: [String: URLEncodedFormData] = ["aaa]": "+bbb  ccc"]
         let data = try URLEncodedFormSerializer.default.serialize(form)

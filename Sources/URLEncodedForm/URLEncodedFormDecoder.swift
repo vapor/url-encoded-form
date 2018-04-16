@@ -1,11 +1,11 @@
 /// Decodes instances of `Decodable` types from `Data`.
 ///
 ///     print(data) /// Data
-///     let user = try FormURLDecoder().decode(User.self, from: data)
+///     let user = try URLEncodedFormDecoder().decode(User.self, from: data)
 ///     print(user) /// User
 ///
 public final class URLEncodedFormDecoder: DataDecoder {
-    /// The underlying `FormURLEncodedParser`
+    /// The underlying `URLEncodedFormEncodedParser`
     private let parser: URLEncodedFormParser
 
     /// If `true`, empty values will be omitted. Empty values are URL-Encoded keys with no value following the `=` sign.
@@ -14,7 +14,7 @@ public final class URLEncodedFormDecoder: DataDecoder {
     /// If `true`, flags will be omitted. Flags are URL-encoded keys with no following `=` sign.
     public var omitFlags: Bool
 
-    /// Create a new `FormURLDecoder`.
+    /// Create a new `URLEncodedFormDecoder`.
     ///
     /// - parameters:
     ///     - omitEmptyValues: If `true`, empty values will be omitted.
@@ -30,7 +30,7 @@ public final class URLEncodedFormDecoder: DataDecoder {
     /// Decodes an instance of the supplied `Decodable` type from `Data`.
     ///
     ///     print(data) /// Data
-    ///     let user = try FormURLDecoder().decode(User.self, from: data)
+    ///     let user = try URLEncodedFormDecoder().decode(User.self, from: data)
     ///     print(user) /// User
     ///
     /// - parameters:
@@ -39,8 +39,8 @@ public final class URLEncodedFormDecoder: DataDecoder {
     /// - returns: An instance of the `Decodable` type (`D`).
     /// - throws: Any error that may occur while attempting to decode the specified type.
     public func decode<D>(_ decodable: D.Type, from data: Data) throws -> D where D : Decodable {
-        let formURLData = try self.parser.parse(percentEncoded: String(data: data, encoding: .utf8) ?? "", omitEmptyValues: self.omitEmptyValues, omitFlags: self.omitFlags)
-        let decoder = _URLEncodedFormDecoder(context: .init(.dict(formURLData)), codingPath: [])
+        let URLEncodedFormData = try self.parser.parse(percentEncoded: String(data: data, encoding: .utf8) ?? "", omitEmptyValues: self.omitEmptyValues, omitFlags: self.omitFlags)
+        let decoder = _URLEncodedFormDecoder(context: .init(.dict(URLEncodedFormData)), codingPath: [])
         return try D(from: decoder)
     }
 }

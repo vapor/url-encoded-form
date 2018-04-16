@@ -1,7 +1,7 @@
 @testable import URLEncodedForm
 import XCTest
 
-class FormURLEncodedParserTests: XCTestCase {
+class URLEncodedFormEncodedParserTests: XCTestCase {
     func testBasic() throws {
         let data = "hello=world&foo=bar".data(using: .utf8)!
         let form = try URLEncodedFormParser.default.parse(data: data)

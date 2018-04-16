@@ -1,6 +1,6 @@
 import Core
 
-/// Converts data to form-urlencoded struct.
+/// Converts `Data` to `[String: URLEncodedFormData]`.
 final class URLEncodedFormParser {
     /// Default form url encoded parser.
     static let `default` = URLEncodedFormParser()
@@ -11,11 +11,7 @@ final class URLEncodedFormParser {
     /// Parses the data.
     /// If empty values is false, `foo=` will resolve as `foo: true`
     /// instead of `foo: ""`
-    func parse(
-        percentEncoded: String,
-        omitEmptyValues: Bool = false,
-        omitFlags: Bool = false
-    ) throws -> [String: URLEncodedFormData] {
+    func parse(percentEncoded: String, omitEmptyValues: Bool = false, omitFlags: Bool = false) throws -> [String: URLEncodedFormData] {
         guard let decoded = percentEncoded.replacingOccurrences(of: "+", with: " ").removingPercentEncoding else {
             throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string: \(percentEncoded)")
         }
@@ -25,17 +21,13 @@ final class URLEncodedFormParser {
     /// Parses the data.
     /// If empty values is false, `foo=` will resolve as `foo: true`
     /// instead of `foo: ""`
-    func parse(
-        data: LosslessDataConvertible,
-        omitEmptyValues: Bool = false,
-        omitFlags: Bool = false
-    ) throws -> [String: URLEncodedFormData] {
+    func parse(data: LosslessDataConvertible, omitEmptyValues: Bool = false, omitFlags: Bool = false) throws -> [String: URLEncodedFormData] {
         var encoded: [String: URLEncodedFormData] = [:]
         let data = data.convertToData()
 
         for pair in data.split(separator: .ampersand) {
             let data: URLEncodedFormData
-            let key: FormURLEncodedKey
+            let key: URLEncodedFormEncodedKey
 
             /// Allow empty subsequences
             /// value= => "value": ""
@@ -81,9 +73,10 @@ final class URLEncodedFormParser {
         return encoded
     }
 
-    private func parseKey(data: Data) throws -> FormURLEncodedKey {
+    /// Parses a `URLEncodedFormEncodedKey` from `Data`.
+    private func parseKey(data: Data) throws -> URLEncodedFormEncodedKey {
         let stringData: Data
-        let subKeys: [FormURLEncodedSubKey]
+        let subKeys: [URLEncodedFormEncodedSubKey]
 
         // check if the key has `key[]` or `key[5]`
         if data.contains(.rightSquareBracket) && data.contains(.leftSquareBracket) {
@@ -92,13 +85,10 @@ final class URLEncodedFormParser {
             let slices = data.split(separator: .leftSquareBracket)
 
             guard slices.count > 0 else {
-                throw URLEncodedFormError(
-                    identifier: "malformedKey",
-                    reason: "Malformed form-urlencoded key encountered."
-                )
+                throw URLEncodedFormError(identifier: "malformedKey", reason: "Malformed form-urlencoded key encountered.")
             }
             stringData = Data(slices[0])
-            subKeys = try slices[1...].map(Data.init).map { data -> FormURLEncodedSubKey in
+            subKeys = try slices[1...].map(Data.init).map { data -> URLEncodedFormEncodedSubKey in
                 if data[0] == .rightSquareBracket {
                     return .array
                 } else {
@@ -110,18 +100,14 @@ final class URLEncodedFormParser {
             subKeys = []
         }
 
-        return try FormURLEncodedKey(
+        return try URLEncodedFormEncodedKey(
             string: stringData.utf8DecodedString(),
             subKeys: subKeys
         )
     }
 
-    /// Sets mutable form-urlencoded input to a value at the given path.
-    private func set(
-        _ base: inout URLEncodedFormData,
-        to data: URLEncodedFormData,
-        at path: [FormURLEncodedSubKey]
-    ) {
+    /// Sets mutable form-urlencoded input to a value at the given `[URLEncodedFormEncodedSubKey]` path.
+    private func set(_ base: inout URLEncodedFormData, to data: URLEncodedFormData, at path: [URLEncodedFormEncodedSubKey]) {
         guard path.count >= 1 else {
             base = data
             return
@@ -148,7 +134,7 @@ final class URLEncodedFormParser {
 
         switch first {
         case .array:
-            if case .array(var arr) = base {
+            if case .arr(var arr) = base {
                 /// always append
                 arr.append(child)
                 base = .array(arr)
@@ -156,7 +142,7 @@ final class URLEncodedFormParser {
                 base = .array([child])
             }
         case .dictionary(let key):
-            if case .dictionary(var dict) = base {
+            if case .dict(var dict) = base {
                 dict[key] = child
                 base = .dictionary(dict)
             } else {
@@ -168,33 +154,34 @@ final class URLEncodedFormParser {
 
 // MARK: Key
 
-fileprivate struct FormURLEncodedKey {
+/// Represents a key in a URLEncodedForm.
+private struct URLEncodedFormEncodedKey {
     let string: String
-    let subKeys: [FormURLEncodedSubKey]
+    let subKeys: [URLEncodedFormEncodedSubKey]
 }
 
-fileprivate enum FormURLEncodedSubKey {
+/// Available subkeys.
+private enum URLEncodedFormEncodedSubKey {
     case array
     case dictionary(String)
 }
 
 // MARK: Utilities
 
-extension Data {
-    fileprivate func utf8DecodedString() throws -> String {
+private extension Data {
+    /// UTF8 decodes a Stirng or throws an error.
+    func utf8DecodedString() throws -> String {
         guard let string = String(data: self, encoding: .utf8) else {
-            throw URLEncodedFormError(
-                identifier: "utf8Decoding",
-                reason: "Failed to utf8 decode string: \(self)"
-            )
+            throw URLEncodedFormError(identifier: "utf8Decoding", reason: "Failed to utf8 decode string: \(self)")
         }
 
         return string
     }
 }
 
-extension Data {
-    fileprivate func percentDecodedString() throws -> String {
+private extension Data {
+    /// Percent decodes a String or throws an error.
+    func percentDecodedString() throws -> String {
         let utf8 = try utf8DecodedString()
 
         guard let decoded = utf8.replacingOccurrences(of: "+", with: " ").removingPercentEncoding else {
@@ -208,7 +195,8 @@ extension Data {
     }
 }
 
-extension Array {
+private extension Array {
+    /// Accesses an array index or returns `nil` if the array isn't long enough.
     subscript(safe index: Int) -> Element? {
         guard index < count else {
             return nil
