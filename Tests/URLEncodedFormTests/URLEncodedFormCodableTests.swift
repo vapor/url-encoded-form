@@ -1,7 +1,7 @@
 import URLEncodedForm
 import XCTest
 
-class URLEncodedFormEncodedCodableTests: XCTestCase {
+class URLEncodedFormCodableTests: XCTestCase {
     func testDecode() throws {
         let data = """
         name=Tanner&age=23&pets[]=Zizek&pets[]=Foo&dict[a]=1&dict[b]=2
