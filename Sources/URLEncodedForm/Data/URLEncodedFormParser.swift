@@ -195,7 +195,7 @@ private extension Data {
     }
 }
 
-private extension Array {
+fileprivate extension Array {
     /// Accesses an array index or returns `nil` if the array isn't long enough.
     fileprivate subscript(safe index: Int) -> Element? {
         guard index < count else {
