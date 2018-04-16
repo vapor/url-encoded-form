@@ -1,17 +1,31 @@
-/// Decodes instances of `Decodable` types from `Data`.
+/// Decodes instances of `Decodable` types from `application/x-www-form-urlencoded` `Data`.
 ///
-///     print(data) /// Data
+///     print(data) // "name=Vapor&age=3"
 ///     let user = try URLEncodedFormDecoder().decode(User.self, from: data)
-///     print(user) /// User
+///     print(user) // User
 ///
+/// URL-encoded forms are commonly used by websites to send form data via POST requests. This encoding is relatively
+/// efficient for small amounts of data but must be percent-encoded.  `multipart/form-data` is more efficient for sending
+/// large data blobs like files.
+///
+/// See [Mozilla's](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST) docs for more information about
+/// url-encoded forms.
 public final class URLEncodedFormDecoder: DataDecoder {
     /// The underlying `URLEncodedFormEncodedParser`
     private let parser: URLEncodedFormParser
 
     /// If `true`, empty values will be omitted. Empty values are URL-Encoded keys with no value following the `=` sign.
+    ///
+    ///     name=Vapor&age=
+    ///
+    /// In the above example, `age` is an empty value.
     public var omitEmptyValues: Bool
 
     /// If `true`, flags will be omitted. Flags are URL-encoded keys with no following `=` sign.
+    ///
+    ///     name=Vapor&isAdmin&age=3
+    ///
+    /// In the above example, `isAdmin` is a flag.
     public var omitFlags: Bool
 
     /// Create a new `URLEncodedFormDecoder`.
@@ -29,9 +43,9 @@ public final class URLEncodedFormDecoder: DataDecoder {
 
     /// Decodes an instance of the supplied `Decodable` type from `Data`.
     ///
-    ///     print(data) /// Data
+    ///     print(data) // "name=Vapor&age=3"
     ///     let user = try URLEncodedFormDecoder().decode(User.self, from: data)
-    ///     print(user) /// User
+    ///     print(user) // User
     ///
     /// - parameters:
     ///     - decodable: Generic `Decodable` type (`D`) to decode.

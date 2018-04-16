@@ -3,15 +3,22 @@
 ///     print(user) /// User
 ///     let data = try URLEncodedFormEncoder().encode(user)
 ///     print(data) /// Data
+///
+/// URL-encoded forms are commonly used by websites to send form data via POST requests. This encoding is relatively
+/// efficient for small amounts of data but must be percent-encoded.  `multipart/form-data` is more efficient for sending
+/// large data blobs like files.
+///
+/// See [Mozilla's](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST) docs for more information about
+/// url-encoded forms.
 public final class URLEncodedFormEncoder: DataEncoder {
     /// Create a new `URLEncodedFormEncoder`.
     public init() {}
 
     /// Encodes the supplied `Encodable` object to `Data`.
     ///
-    ///     print(user) /// User
+    ///     print(user) // User
     ///     let data = try URLEncodedFormEncoder().encode(user)
-    ///     print(data) /// Data
+    ///     print(data) // "name=Vapor&age=3"
     ///
     /// - parameters:
     ///     - encodable: Generic `Encodable` object (`E`) to encode.
