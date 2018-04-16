@@ -1,9 +1,11 @@
+#if os(Linux)
+
 import XCTest
+@testable import URLEncodedFormTests
+XCTMain([
+    testCase(URLEncodedFormCodableTests.allTests),
+    testCase(URLEncodedFormParserTests.allTests),
+    testCase(URLEncodedFormSerializerTests.allTests),
+])
 
-import URLEncodedFormTests
-
-var tests = [XCTestCaseEntry]()
-tests += URLEncodedFormCodableTests.allTests()
-tests += URLEncodedFormParserTests.allTests()
-tests += URLEncodedFormSerializerTests.allTests()
-XCTMain(tests)
+#endif
