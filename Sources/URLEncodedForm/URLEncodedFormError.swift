@@ -8,8 +8,8 @@ public struct URLEncodedFormError: Error, Debuggable {
     /// See Debuggable.reason
     public let reason: String
 
-    /// Creates a new form url error
-    internal init(identifier: String, reason: String) {
+    /// Creates a new `URLEncodedFormError`.
+    public init(identifier: String, reason: String) {
         self.identifier = identifier
         self.reason = reason
     }
