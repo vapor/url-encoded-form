@@ -2,7 +2,7 @@
     <img src="https://user-images.githubusercontent.com/1342803/38834991-185bbaa4-4198-11e8-8b16-a36471e93202.png" height="64" alt="URL-Encoded Form">
     <br>
     <br>
-    <a href="https://docs.vapor.codes/3.0/url-encoded-form/getting-started">
+    <a href="https://docs.vapor.codes/3.0/url-encoded-form/getting-started/">
         <img src="http://img.shields.io/badge/read_the-docs-2196f3.svg" alt="Documentation">
     </a>
     <a href="http://vapor.team">
