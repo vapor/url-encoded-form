@@ -122,10 +122,12 @@ private final class _URLEncodedFormSingleValueDecoder: SingleValueDecodingContai
         guard let data = context.data.get(at: codingPath) else {
             throw DecodingError.typeMismatch(T.self, at: codingPath)
         }
-        guard let convertible = T.self as? URLEncodedFormDataConvertible.Type else {
-            throw URLEncodedFormError(identifier: "convertible", reason: "Could not convert `\(T.self)` from form-urlencoded data.")
+        if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
+            return try convertible.convertFromURLEncodedFormData(data) as! T
+        } else {
+            let decoder = _URLEncodedFormDecoder(context: context, codingPath: codingPath)
+            return try T.init(from: decoder)
         }
-        return try convertible.convertFromURLEncodedFormData(data) as! T
     }
 }
 

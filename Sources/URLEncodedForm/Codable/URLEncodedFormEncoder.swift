@@ -100,10 +100,12 @@ private final class _URLEncodedFormSingleValueEncoder: SingleValueEncodingContai
 
     /// See `SingleValueEncodingContainer`
     func encode<T>(_ value: T) throws where T: Encodable {
-        guard let convertible = value as? URLEncodedFormDataConvertible else {
-            throw URLEncodedFormError(identifier: "convertible", reason: "Could not convert `\(T.self)` to form-urlencoded data.")
+        if let convertible = value as? URLEncodedFormDataConvertible {
+            try context.data.set(to: convertible.convertToURLEncodedFormData(), at: codingPath)
+        } else {
+            let encoder = _URLEncodedFormEncoder(context: context, codingPath: codingPath)
+            try value.encode(to: encoder)
         }
-        try context.data.set(to: convertible.convertToURLEncodedFormData(), at: codingPath)
     }
 }
 
