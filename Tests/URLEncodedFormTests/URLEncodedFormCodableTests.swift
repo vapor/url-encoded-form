@@ -45,11 +45,39 @@ class URLEncodedFormCodableTests: XCTestCase {
         XCTAssertEqual(content["array"], [1, 2, 3])
     }
 
+    func testRawEnum() throws {
+        enum PetType: String, Codable {
+            case cat, dog
+        }
+        struct Pet: Codable {
+            var name: String
+            var type: PetType
+        }
+        let ziz = try URLEncodedFormDecoder().decode(Pet.self, from: "name=Ziz&type=cat")
+        XCTAssertEqual(ziz.name, "Ziz")
+        XCTAssertEqual(ziz.type, .cat)
+        let data = try URLEncodedFormEncoder().encode(ziz)
+        let string = String(data: data, encoding: .ascii)
+        XCTAssertEqual(string?.contains("name=Ziz"), true)
+        XCTAssertEqual(string?.contains("type=cat"), true)
+    }
+
+    /// https://github.com/vapor/url-encoded-form/issues/3
+    func testGH3() throws {
+        struct Foo: Codable {
+            var flag: Bool
+        }
+        let foo = try URLEncodedFormDecoder().decode(Foo.self, from: "flag=1")
+        XCTAssertEqual(foo.flag, true)
+    }
+
     static let allTests = [
         ("testDecode", testDecode),
         ("testEncode", testEncode),
         ("testCodable", testCodable),
         ("testDecodeIntArray", testDecodeIntArray),
+        ("testRawEnum", testRawEnum),
+        ("testGH3", testGH3),
     ]
 }
 

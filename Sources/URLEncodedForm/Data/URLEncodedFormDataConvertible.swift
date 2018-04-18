@@ -69,6 +69,21 @@ extension BinaryFloatingPoint {
 extension Float: URLEncodedFormDataConvertible { }
 extension Double: URLEncodedFormDataConvertible { }
 
+extension Bool: URLEncodedFormDataConvertible {
+    /// See `URLEncodedFormDataConvertible`.
+    func convertToURLEncodedFormData() throws -> URLEncodedFormData {
+        return .str(description)
+    }
+
+    /// See `URLEncodedFormDataConvertible`.
+    static func convertFromURLEncodedFormData(_ data: URLEncodedFormData) throws -> Bool {
+        guard let bool = data.string?.bool else {
+            throw URLEncodedFormError(identifier: "bool", reason: "Could not convert to Bool: \(data)")
+        }
+        return bool
+    }
+}
+
 extension Dictionary: URLEncodedFormDataConvertible {
     /// See `URLEncodedFormDataConvertible`.
     func convertToURLEncodedFormData() throws -> URLEncodedFormData {
