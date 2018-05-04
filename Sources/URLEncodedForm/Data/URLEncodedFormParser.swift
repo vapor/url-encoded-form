@@ -12,10 +12,8 @@ final class URLEncodedFormParser {
     /// If empty values is false, `foo=` will resolve as `foo: true`
     /// instead of `foo: ""`
     func parse(percentEncoded: String, omitEmptyValues: Bool = false, omitFlags: Bool = false) throws -> [String: URLEncodedFormData] {
-        guard let decoded = percentEncoded.replacingOccurrences(of: "+", with: " ").removingPercentEncoding else {
-            throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string: \(percentEncoded)")
-        }
-        return try parse(data: decoded, omitEmptyValues: omitEmptyValues, omitFlags: omitFlags)
+        let partiallyDecoded = percentEncoded.replacingOccurrences(of: "+", with: " ")
+        return try parse(data: partiallyDecoded, omitEmptyValues: omitEmptyValues, omitFlags: omitFlags)
     }
 
     /// Parses the data.
@@ -43,7 +41,10 @@ final class URLEncodedFormParser {
                     continue
                 }
                 key = try parseKey(data: token[0])
-                data = try .str(token[1].utf8DecodedString())
+                guard let decoded = try token[1].utf8DecodedString().removingPercentEncoding else {
+                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string: \(token[1])")
+                }
+                data = .str(decoded)
             } else if token.count == 1 {
                 if omitFlags {
                     continue
