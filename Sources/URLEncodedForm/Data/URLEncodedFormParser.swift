@@ -36,24 +36,27 @@ final class URLEncodedFormParser {
                 omittingEmptySubsequences: false
             )
 
+            let decodedKey = try token.first?.utf8DecodedString().removingPercentEncoding
+            let decodedValue = try token.last?.utf8DecodedString().removingPercentEncoding
+
             if token.count == 2 {
                 if omitEmptyValues && token[1].count == 0 {
                     continue
                 }
-                guard let decodedKey = try token[0].utf8DecodedString().removingPercentEncoding else {
-                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string: \(token[0])")
+                guard let decodedKey = decodedKey else {
+                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string key: \(token[0])")
+                }
+                guard let decodedValue = decodedValue else {
+                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string value: \(token[1])")
                 }
                 key = try parseKey(data: decodedKey)
-                guard let decodedValue = try token[1].utf8DecodedString().removingPercentEncoding else {
-                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string: \(token[1])")
-                }
                 data = .str(decodedValue)
             } else if token.count == 1 {
                 if omitFlags {
                     continue
                 }
-                guard let decodedKey = try token[0].utf8DecodedString().removingPercentEncoding else {
-                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string: \(token[0])")
+                guard let decodedKey = decodedKey else {
+                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string key: \(token[0])")
                 }
                 key = try parseKey(data: decodedKey)
                 data = "true"
