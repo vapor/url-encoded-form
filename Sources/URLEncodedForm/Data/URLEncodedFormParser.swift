@@ -40,16 +40,22 @@ final class URLEncodedFormParser {
                 if omitEmptyValues && token[1].count == 0 {
                     continue
                 }
-                key = try parseKey(data: token[0])
-                guard let decoded = try token[1].utf8DecodedString().removingPercentEncoding else {
+                guard let decodedKey = try token[0].utf8DecodedString().removingPercentEncoding else {
+                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string: \(token[0])")
+                }
+                key = try parseKey(data: decodedKey)
+                guard let decodedValue = try token[1].utf8DecodedString().removingPercentEncoding else {
                     throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string: \(token[1])")
                 }
-                data = .str(decoded)
+                data = .str(decodedValue)
             } else if token.count == 1 {
                 if omitFlags {
                     continue
                 }
-                key = try parseKey(data: token[0])
+                guard let decodedKey = try token[0].utf8DecodedString().removingPercentEncoding else {
+                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string: \(token[0])")
+                }
+                key = try parseKey(data: decodedKey)
                 data = "true"
             } else {
                 throw URLEncodedFormError(
@@ -75,7 +81,8 @@ final class URLEncodedFormParser {
     }
 
     /// Parses a `URLEncodedFormEncodedKey` from `Data`.
-    private func parseKey(data: Data) throws -> URLEncodedFormEncodedKey {
+    private func parseKey(data dataConvertible: LosslessDataConvertible) throws -> URLEncodedFormEncodedKey {
+        let data = dataConvertible.convertToData()
         let stringData: Data
         let subKeys: [URLEncodedFormEncodedSubKey]
 
