@@ -36,15 +36,17 @@ final class URLEncodedFormParser {
                 omittingEmptySubsequences: false
             )
 
-            let decodedKey = try token.first?.utf8DecodedString().removingPercentEncoding
+            guard let decodedKey = try token.first?.utf8DecodedString().removingPercentEncoding else {
+                throw URLEncodedFormError(
+                    identifier: "percentDecoding",
+                    reason: "Could not percent decode string key: \(token[0])"
+                )
+            }
             let decodedValue = try token.last?.utf8DecodedString().removingPercentEncoding
 
             if token.count == 2 {
                 if omitEmptyValues && token[1].count == 0 {
                     continue
-                }
-                guard let decodedKey = decodedKey else {
-                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string key: \(token[0])")
                 }
                 guard let decodedValue = decodedValue else {
                     throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string value: \(token[1])")
@@ -54,9 +56,6 @@ final class URLEncodedFormParser {
             } else if token.count == 1 {
                 if omitFlags {
                     continue
-                }
-                guard let decodedKey = decodedKey else {
-                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string key: \(token[0])")
                 }
                 key = try parseKey(data: decodedKey)
                 data = "true"
