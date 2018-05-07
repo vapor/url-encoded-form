@@ -55,6 +55,9 @@ final class URLEncodedFormParser {
                 if omitFlags {
                     continue
                 }
+                guard let decodedKey = decodedKey else {
+                    throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string key: \(token[0])")
+                }
                 key = try parseKey(data: decodedKey)
                 data = "true"
             } else {
