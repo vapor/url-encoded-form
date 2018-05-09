@@ -7,6 +7,12 @@ class URLEncodedFormParserTests: XCTestCase {
         let form = try URLEncodedFormParser.default.parse(data: data)
         XCTAssertEqual(form, ["hello": "world", "foo": "bar"])
     }
+    
+    func testBasicWithAmpersand() throws {
+        let data = "hello=world&foo=bar%26bar".data(using: .utf8)!
+        let form = try URLEncodedFormParser.default.parse(data: data)
+        XCTAssertEqual(form, ["hello": "world", "foo": "bar&bar"])
+    }
 
     func testDictionary() throws {
         let data = "greeting[en]=hello&greeting[es]=hola".data(using: .utf8)!
@@ -47,6 +53,7 @@ class URLEncodedFormParserTests: XCTestCase {
 
     static let allTests = [
         ("testBasic", testBasic),
+        ("testBasicWithAmpersand", testBasicWithAmpersand),
         ("testDictionary", testDictionary),
         ("testArray", testArray),
         ("testOptions", testOptions),
