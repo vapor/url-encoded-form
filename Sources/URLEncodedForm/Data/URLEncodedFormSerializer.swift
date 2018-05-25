@@ -3,19 +3,37 @@ import Bits
 /// Converts `[String: URLEncodedFormData]` structs to `Data`.
 final class URLEncodedFormSerializer {
     /// Default form url encoded serializer.
-    static let `default` = URLEncodedFormSerializer()
+    static let `default` = URLEncodedFormSerializer(sortedKeys: false)
+    
+    private var sortedKeys: Bool
 
     /// Create a new form-urlencoded data serializer.
-    init() {}
+    init(sortedKeys: Bool) {
+        self.sortedKeys = sortedKeys
+    }
 
     /// Serializes the data.
     func serialize(_ URLEncodedFormEncoded: [String: URLEncodedFormData]) throws -> Data {
         var data: [Data] = []
-        for (key, val) in URLEncodedFormEncoded {
-            let key = try key.urlEncodedFormEncoded()
-            let subdata = try serialize(val, forKey: key)
-            data.append(subdata)
+        
+        if self.sortedKeys {
+            let elements = URLEncodedFormEncoded.sorted { (left, right) -> Bool in
+                return left.key.compare(right.key, options: [.numeric, .caseInsensitive, .forcedOrdering]) == .orderedAscending
+            }
+            
+            for (key, val) in elements {
+                let key = try key.urlEncodedFormEncoded()
+                let subdata = try serialize(val, forKey: key)
+                data.append(subdata)
+            }
+        } else {
+            for (key, val) in URLEncodedFormEncoded {
+                let key = try key.urlEncodedFormEncoded()
+                let subdata = try serialize(val, forKey: key)
+                data.append(subdata)
+            }
         }
+        
         return data.joinedWithAmpersands()
     }
 
