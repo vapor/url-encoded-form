@@ -5,6 +5,7 @@ final class URLEncodedFormSerializer {
     /// Default form url encoded serializer.
     static let `default` = URLEncodedFormSerializer(sortedKeys: false)
     
+    /// Produce JSON with dictionary keys sorted in lexicographic order.
     private var sortedKeys: Bool
 
     /// Create a new form-urlencoded data serializer.
@@ -15,25 +16,22 @@ final class URLEncodedFormSerializer {
     /// Serializes the data.
     func serialize(_ URLEncodedFormEncoded: [String: URLEncodedFormData]) throws -> Data {
         var data: [Data] = []
-        
+        var elements: [(key: String, value: URLEncodedFormData)]!
+
         if self.sortedKeys {
-            let elements = URLEncodedFormEncoded.sorted { (left, right) -> Bool in
+            elements = URLEncodedFormEncoded.sorted { (left, right) -> Bool in
                 return left.key.compare(right.key, options: [.numeric, .caseInsensitive, .forcedOrdering]) == .orderedAscending
             }
-            
-            for (key, val) in elements {
-                let key = try key.urlEncodedFormEncoded()
-                let subdata = try serialize(val, forKey: key)
-                data.append(subdata)
-            }
         } else {
-            for (key, val) in URLEncodedFormEncoded {
-                let key = try key.urlEncodedFormEncoded()
-                let subdata = try serialize(val, forKey: key)
-                data.append(subdata)
-            }
+            elements = URLEncodedFormEncoded.map { $0 }
         }
-        
+
+        for (key, val) in elements {
+            let key = try key.urlEncodedFormEncoded()
+            let subdata = try serialize(val, forKey: key)
+            data.append(subdata)
+        }
+
         return data.joinedWithAmpersands()
     }
 
@@ -50,10 +48,21 @@ final class URLEncodedFormSerializer {
 
     /// Serializes a `[String: URLEncodedFormData]` at a given key.
     private func serialize(_ dictionary: [String: URLEncodedFormData], forKey key: Data) throws -> Data {
-        let values = try dictionary.map { subKey, value -> Data in
+        var elements: [(key: String, value: URLEncodedFormData)]!
+
+        if self.sortedKeys {
+            elements = dictionary.sorted { (left, right) -> Bool in
+                return left.key.compare(right.key, options: [.numeric, .caseInsensitive, .forcedOrdering]) == .orderedAscending
+            }
+        } else {
+            elements = dictionary.map { $0 }
+        }
+
+        let values = try elements.map { (subKey, value) -> Data in
             let keyPath = try [.leftSquareBracket] + subKey.urlEncodedFormEncoded() + [.rightSquareBracket]
             return try serialize(value, forKey: key + keyPath)
         }
+
         return values.joinedWithAmpersands()
     }
 

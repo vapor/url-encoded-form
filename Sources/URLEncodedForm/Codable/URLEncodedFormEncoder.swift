@@ -24,7 +24,8 @@ public final class URLEncodedFormEncoder: DataEncoder {
         /// Produce output with dictionary keys sorted in lexicographic order.
         public static let sortedKeys = OutputFormatting(rawValue: 1 << 1)
     }
-    
+
+    /// The output format to produce. Defaults to `[]`.
     public var outputFormatting: OutputFormatting = []
     
     /// Create a new `URLEncodedFormEncoder`.
