@@ -86,6 +86,7 @@ class URLEncodedFormCodableTests: XCTestCase {
         ("testCodable", testCodable),
         ("testDecodeIntArray", testDecodeIntArray),
         ("testRawEnum", testRawEnum),
+        ("testSortedDictionary", testSortedDictionary),
         ("testGH3", testGH3),
     ]
 }
