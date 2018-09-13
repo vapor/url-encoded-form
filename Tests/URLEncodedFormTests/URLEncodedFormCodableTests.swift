@@ -6,16 +6,15 @@ class URLEncodedFormCodableTests: XCTestCase {
         let data = """
         name=Tanner&age=23&pets[]=Zizek&pets[]=Foo&dict[a]=1&dict[b]=2&friends[valerio][name]=Valerio&friends[valerio][age]=32
         """.data(using: .utf8)!
-
         let user = try URLEncodedFormDecoder().decode(User.self, from: data)
         XCTAssertEqual(user.name, "Tanner")
         XCTAssertEqual(user.age, 23)
-        XCTAssertEqual(user.pets.count, 2)
-        XCTAssertEqual(user.pets.first, "Zizek")
-        XCTAssertEqual(user.pets.last, "Foo")
-        XCTAssertEqual(user.dict["a"], 1)
-        XCTAssertEqual(user.dict["b"], 2)
-        XCTAssertEqual(user.friends, ["valerio": User(name: "Valerio", age: 32, pets: [], dict: [:], friends: [:])])
+        XCTAssertEqual(user.pets?.count, 2)
+        XCTAssertEqual(user.pets?.first, "Zizek")
+        XCTAssertEqual(user.pets?.last, "Foo")
+        XCTAssertEqual(user.dict?["a"], 1)
+        XCTAssertEqual(user.dict?["b"], 2)
+        XCTAssertEqual(user.friends, ["valerio": User(name: "Valerio", age: 32, pets: nil, dict: nil, friends: nil)])
     }
 
     func testEncode() throws {
@@ -39,7 +38,7 @@ class URLEncodedFormCodableTests: XCTestCase {
     }
 
     func testCodable() throws {
-        let a = User(name: "Tanner", age: 23, pets: ["Zizek", "Foo"], dict: ["a": 1, "b": 2], friends: [:])
+        let a = User(name: "Tanner", age: 23, pets: ["Zizek", "Foo"], dict: ["a": 1, "b": 2], friends: nil)
         let body = try URLEncodedFormEncoder().encode(a)
         let b = try URLEncodedFormDecoder().decode(User.self, from: body)
         XCTAssertEqual(a, b)
@@ -101,7 +100,7 @@ struct User: Codable, Equatable {
 
     var name: String
     var age: Int
-    var pets: [String]
-    var dict: [String: Int]
-    var friends: [String: User]
+    var pets: [String]?
+    var dict: [String: Int]?
+    var friends: [String: User]?
 }
