@@ -61,4 +61,3 @@ class URLEncodedFormParserTests: XCTestCase {
         ("testNestedParsing", testNestedParsing),
     ]
 }
-
