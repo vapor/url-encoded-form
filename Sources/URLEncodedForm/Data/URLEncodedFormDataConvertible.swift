@@ -84,62 +84,18 @@ extension Bool: URLEncodedFormDataConvertible {
     }
 }
 
-extension Dictionary: URLEncodedFormDataConvertible {
+extension Decimal: URLEncodedFormDataConvertible {
     /// See `URLEncodedFormDataConvertible`.
     func convertToURLEncodedFormData() throws -> URLEncodedFormData {
-        var dict: [String: URLEncodedFormData] = [:]
-        for (key, val) in self {
-            guard let convertible = val as? URLEncodedFormDataConvertible else {
-                throw URLEncodedFormError(identifier: "convertible", reason: "Could not convert `\(Value.self)` to form-urlencoded data.")
-            }
-            guard let str = key as? String else {
-                throw URLEncodedFormError(identifier: "key", reason: "Could not convert `\(Key.self)` to String.")
-            }
-            dict[str] = try convertible.convertToURLEncodedFormData()
-        }
-        return .dict(dict)
+        return .str(description)
     }
-
+    
     /// See `URLEncodedFormDataConvertible`.
-    static func convertFromURLEncodedFormData(_ data: URLEncodedFormData) throws -> [Key: Value] {
-        var converted: [Key: Value] = [:]
-        guard let dict = data.dictionary else {
-            throw URLEncodedFormError(identifier: "dictionary", reason: "Could not convert form-urlencoded data to dictionary: \(data).")
+    static func convertFromURLEncodedFormData(_ data: URLEncodedFormData) throws -> Decimal {
+        guard let string = data.string, let d = Decimal(string: string) else {
+            throw URLEncodedFormError(identifier: "decimal", reason: "Could not convert to Decimal: \(data)")
         }
-        guard let convertible = Value.self as? URLEncodedFormDataConvertible.Type else {
-            throw URLEncodedFormError(identifier: "convertible", reason: "Could not convert `\(Value.self)` to form-urlencoded data.")
-        }
-        for (str, data) in dict {
-            guard let key = str as? Key else {
-                throw URLEncodedFormError(identifier: "key", reason: "Could not convert `\(Key.self)` to String.")
-            }
-            converted[key] = try convertible.convertFromURLEncodedFormData(data) as? Value
-        }
-        return converted
-    }
-}
-
-extension Array: URLEncodedFormDataConvertible {
-    /// See `URLEncodedFormDataConvertible`.
-    func convertToURLEncodedFormData() throws -> URLEncodedFormData {
-        return try .arr(map({ el in
-            guard let data = el as? URLEncodedFormDataConvertible else {
-                throw URLEncodedFormError(identifier: "convertible", reason: "Could not convert `\(Element.self)` to form-urlencoded data.")
-            }
-            return try data.convertToURLEncodedFormData()
-        }))
-    }
-
-    /// See `URLEncodedFormDataConvertible`.
-    static func convertFromURLEncodedFormData(_ data: URLEncodedFormData) throws -> [Element] {
-        guard let arr = data.array else {
-            throw URLEncodedFormError(identifier: "array", reason: "Could not convert form-urlencoded data to array: \(data).")
-        }
-        guard let convertible = Element.self as? URLEncodedFormDataConvertible.Type else {
-            throw URLEncodedFormError(identifier: "convertible", reason: "Could not convert `\(Element.self)` to form-urlencoded data.")
-        }
-        return try arr.map { data in
-            return try convertible.convertFromURLEncodedFormData(data) as! Element
-        }
+        
+        return d
     }
 }
