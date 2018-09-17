@@ -83,3 +83,19 @@ extension Bool: URLEncodedFormDataConvertible {
         return bool
     }
 }
+
+extension Decimal: URLEncodedFormDataConvertible {
+    /// See `URLEncodedFormDataConvertible`.
+    func convertToURLEncodedFormData() throws -> URLEncodedFormData {
+        return .str(description)
+    }
+    
+    /// See `URLEncodedFormDataConvertible`.
+    static func convertFromURLEncodedFormData(_ data: URLEncodedFormData) throws -> Decimal {
+        guard let string = data.string, let d = Decimal(string: string) else {
+            throw URLEncodedFormError(identifier: "decimal", reason: "Could not convert to Decimal: \(data)")
+        }
+        
+        return d
+    }
+}
