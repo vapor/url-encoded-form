@@ -53,8 +53,8 @@ public final class URLEncodedFormDecoder: DataDecoder {
     /// - returns: An instance of the `Decodable` type (`D`).
     /// - throws: Any error that may occur while attempting to decode the specified type.
     public func decode<D>(_ decodable: D.Type, from data: Data) throws -> D where D : Decodable {
-        let URLEncodedFormData = try self.parser.parse(percentEncoded: String(data: data, encoding: .utf8) ?? "", omitEmptyValues: self.omitEmptyValues, omitFlags: self.omitFlags)
-        let decoder = _URLEncodedFormDecoder(context: .init(.dict(URLEncodedFormData)), codingPath: [])
+        let urlEncodedFormData = try self.parser.parse(percentEncoded: String(data: data, encoding: .utf8) ?? "", omitEmptyValues: self.omitEmptyValues, omitFlags: self.omitFlags)
+        let decoder = _URLEncodedFormDecoder(context: .init(.dict(urlEncodedFormData)), codingPath: [])
         return try D(from: decoder)
     }
 }
@@ -120,7 +120,7 @@ private final class _URLEncodedFormSingleValueDecoder: SingleValueDecodingContai
     /// See `SingleValueDecodingContainer`
     func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
         guard let data = context.data.get(at: codingPath) else {
-            throw DecodingError.typeMismatch(T.self, at: codingPath)
+            throw DecodingError.valueNotFound(T.self, at: codingPath)
         }
         if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
             return try convertible.convertFromURLEncodedFormData(data) as! T
@@ -170,7 +170,7 @@ private final class _URLEncodedFormKeyedDecoder<K>: KeyedDecodingContainerProtoc
     func decode<T>(_ type: T.Type, forKey key: K) throws -> T where T: Decodable {
         if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
             guard let data = context.data.get(at: codingPath + [key]) else {
-                throw DecodingError.typeMismatch(T.self, at: codingPath + [key])
+                throw DecodingError.valueNotFound(T.self, at: codingPath + [key])
             }
             return try convertible.convertFromURLEncodedFormData(data) as! T
         } else {
@@ -221,7 +221,7 @@ private final class _URLEncodedFormUnkeyedDecoder: UnkeyedDecodingContainer {
     /// See `UnkeyedDecodingContainer`.
     var isAtEnd: Bool {
         guard let count = self.count else {
-            return false
+            return true
         }
         return currentIndex >= count
     }
@@ -251,7 +251,7 @@ private final class _URLEncodedFormUnkeyedDecoder: UnkeyedDecodingContainer {
         defer { currentIndex += 1 }
         if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
             guard let data = context.data.get(at: codingPath + [index]) else {
-                throw DecodingError.typeMismatch(T.self, at: codingPath)
+                throw DecodingError.valueNotFound(T.self, at: codingPath + [index])
             }
             return try convertible.convertFromURLEncodedFormData(data) as! T
         } else {
@@ -291,5 +291,14 @@ private extension DecodingError {
             debugDescription: "No \(type) was found at path \(pathString)"
         )
         return Swift.DecodingError.typeMismatch(type, context)
+    }
+    
+    static func valueNotFound(_ type: Any.Type, at path: [CodingKey]) -> DecodingError {
+        let pathString = path.map { $0.stringValue }.joined(separator: ".")
+        let context = DecodingError.Context(
+            codingPath: path,
+            debugDescription: "No \(type) was found at path \(pathString)"
+        )
+        return Swift.DecodingError.valueNotFound(type, context)
     }
 }
