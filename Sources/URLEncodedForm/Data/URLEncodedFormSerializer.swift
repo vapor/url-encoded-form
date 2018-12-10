@@ -66,7 +66,7 @@ private extension String {
             throw URLEncodedFormError(identifier: "percentEncoding", reason: "Failed to percent encode string: \(self)")
         }
 
-        guard let encoded = string.data(using: .utf8) else {
+        guard let encoded = string.replacingOccurrences(of: " ", with: "+").data(using: .utf8) else {
             throw URLEncodedFormError(identifier: "utf8Encoding", reason: "Failed to utf8 encode string: \(self)")
         }
 
@@ -76,7 +76,16 @@ private extension String {
 
 /// Characters allowed in form-urlencoded data.
 private var _allowedCharacters: CharacterSet = {
-    var allowed = CharacterSet.urlQueryAllowed
-    allowed.remove("+")
+    var allowed = CharacterSet()
+    // Reference: http://www.w3.org/TR/html4/interact/forms.html and https://tools.ietf.org/html/rfc1866
+    // Alphanumeric ASCII characters are allowed.
+    allowed.insert(charactersIn: "0"..."9")
+    allowed.insert(charactersIn: "A"..."Z")
+    allowed.insert(charactersIn: "a"..."z")
+    // According to reference, non-alphanumeric characters are escaped. However WebKit, Blink and Gecko all treat
+    // `*` (U+002A), `-` (U+002D), `.` (U+002E) and `_` (U+005F) as safe characters for compatibility with Netscape.
+    allowed.insert(charactersIn: "*-._")
+    // Space characters are replaced by `+` later on. Therefore, we don't need to percent-encode them.
+    allowed.insert(charactersIn: " ")
     return allowed
 }()
