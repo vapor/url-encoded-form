@@ -79,5 +79,6 @@ private var _allowedCharacters: CharacterSet = {
     var allowed = CharacterSet.urlQueryAllowed
     allowed.remove("+")
     allowed.remove("&")
+    allowed.remove(";")
     return allowed
 }()
