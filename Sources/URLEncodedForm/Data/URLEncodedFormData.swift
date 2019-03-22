@@ -1,7 +1,5 @@
-import Bits
-
 /// Represents application/x-www-form-urlencoded encoded data.
-enum URLEncodedFormData: NestedData, ExpressibleByArrayLiteral, ExpressibleByStringLiteral, ExpressibleByDictionaryLiteral, Equatable {
+enum URLEncodedFormData: ExpressibleByArrayLiteral, ExpressibleByStringLiteral, ExpressibleByDictionaryLiteral, Equatable, CustomStringConvertible {
     /// See `NestedData`.
     static func dictionary(_ value: [String : URLEncodedFormData]) -> URLEncodedFormData {
         return .dict(value)
@@ -20,6 +18,14 @@ enum URLEncodedFormData: NestedData, ExpressibleByArrayLiteral, ExpressibleByStr
 
     /// Stores an array of self.
     case arr([URLEncodedFormData])
+    
+    var description: String {
+        switch self {
+        case .arr(let arr): return arr.description
+        case .dict(let dict): return dict.description
+        case .str(let string): return string.debugDescription
+        }
+    }
 
     // MARK: Polymorphic
 

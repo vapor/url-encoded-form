@@ -10,7 +10,7 @@
 ///
 /// See [Mozilla's](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST) docs for more information about
 /// url-encoded forms.
-public final class URLEncodedFormDecoder: DataDecoder {
+public struct URLEncodedFormDecoder {
     /// The underlying `URLEncodedFormEncodedParser`
     private let parser: URLEncodedFormParser
 
@@ -36,7 +36,7 @@ public final class URLEncodedFormDecoder: DataDecoder {
     ///     - omitFlags: If `true`, flags will be omitted.
     ///                  Flags are URL-encoded keys with no following `=` sign.
     public init(omitEmptyValues: Bool = false, omitFlags: Bool = false) {
-        self.parser = URLEncodedFormParser()
+        self.parser = URLEncodedFormParser(omitEmptyValues: omitEmptyValues, omitFlags: omitFlags)
         self.omitFlags = omitFlags
         self.omitEmptyValues = omitEmptyValues
     }
@@ -52,9 +52,9 @@ public final class URLEncodedFormDecoder: DataDecoder {
     ///     - from: `Data` to decode a `D` from.
     /// - returns: An instance of the `Decodable` type (`D`).
     /// - throws: Any error that may occur while attempting to decode the specified type.
-    public func decode<D>(_ decodable: D.Type, from data: Data) throws -> D where D : Decodable {
-        let urlEncodedFormData = try self.parser.parse(percentEncoded: String(data: data, encoding: .utf8) ?? "", omitEmptyValues: self.omitEmptyValues, omitFlags: self.omitFlags)
-        let decoder = _URLEncodedFormDecoder(context: .init(.dict(urlEncodedFormData)), codingPath: [])
+    public func decode<D>(_ decodable: D.Type, from string: String) throws -> D where D : Decodable {
+        let urlEncodedFormData = try self.parser.parse(data: string)
+        let decoder = _Decoder(data: .dict(urlEncodedFormData), codingPath: [])
         return try D(from: decoder)
     }
 }
@@ -62,7 +62,7 @@ public final class URLEncodedFormDecoder: DataDecoder {
 // MARK: Private
 
 /// Private `Decoder`. See `URLEncodedFormDecoder` for public decoder.
-private final class _URLEncodedFormDecoder: Decoder {
+private struct _Decoder: Decoder {
     /// See `Decoder`
     let codingPath: [CodingKey]
 
@@ -72,11 +72,11 @@ private final class _URLEncodedFormDecoder: Decoder {
     }
 
     /// The data being decoded
-    let context: URLEncodedFormDataContext
+    let data: URLEncodedFormData
 
     /// Creates a new `_URLEncodedFormDecoder`.
-    init(context: URLEncodedFormDataContext, codingPath: [CodingKey]) {
-        self.context = context
+    init(data: URLEncodedFormData, codingPath: [CodingKey]) {
+        self.data = data
         self.codingPath = codingPath
     }
 
@@ -84,204 +84,180 @@ private final class _URLEncodedFormDecoder: Decoder {
     func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key>
         where Key: CodingKey
     {
-        return .init(_URLEncodedFormKeyedDecoder<Key>(context: context, codingPath: codingPath))
+        switch self.data {
+        case .dict(let dict):
+            return KeyedDecodingContainer(KeyedContainer<Key>(data: dict, codingPath: self.codingPath))
+        default: fatalError()
+        }
     }
 
     /// See `Decoder`
     func unkeyedContainer() throws -> UnkeyedDecodingContainer {
-        return _URLEncodedFormUnkeyedDecoder(context: context, codingPath: codingPath)
+        switch self.data {
+        case .arr(let arr):
+            return UnkeyedContainer(data: arr, codingPath: codingPath)
+        default: fatalError()
+        }
     }
 
     /// See `Decoder`
     func singleValueContainer() throws -> SingleValueDecodingContainer {
-        return _URLEncodedFormSingleValueDecoder(context: context, codingPath: codingPath)
+        return SingleValueContainer(data: self.data, codingPath: codingPath)
     }
-}
-
-/// Private `SingleValueDecodingContainer`.
-private final class _URLEncodedFormSingleValueDecoder: SingleValueDecodingContainer {
-    /// The data being decoded
-    let context: URLEncodedFormDataContext
-
-    /// See `SingleValueDecodingContainer`
-    var codingPath: [CodingKey]
-
-    /// Creates a new `_URLEncodedFormSingleValueDecoder`.
-    init(context: URLEncodedFormDataContext, codingPath: [CodingKey]) {
-        self.context = context
-        self.codingPath = codingPath
-    }
-
-    /// See `SingleValueDecodingContainer`
-    func decodeNil() -> Bool {
-        return context.data.get(at: codingPath) == nil
-    }
-
-    /// See `SingleValueDecodingContainer`
-    func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
-        guard let data = context.data.get(at: codingPath) else {
-            throw DecodingError.valueNotFound(T.self, at: codingPath)
+    
+    struct SingleValueContainer: SingleValueDecodingContainer {
+        let data: URLEncodedFormData
+        var codingPath: [CodingKey]
+        
+        init(data: URLEncodedFormData, codingPath: [CodingKey]) {
+            self.data = data
+            self.codingPath = codingPath
         }
-        if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
-            return try convertible.convertFromURLEncodedFormData(data) as! T
-        } else {
-            let decoder = _URLEncodedFormDecoder(context: context, codingPath: codingPath)
-            return try T.init(from: decoder)
+        
+        func decodeNil() -> Bool {
+            return false
         }
-    }
-}
-
-/// Private `KeyedDecodingContainerProtocol`.
-private final class _URLEncodedFormKeyedDecoder<K>: KeyedDecodingContainerProtocol where K: CodingKey {
-    /// See `KeyedDecodingContainerProtocol.`
-    typealias Key = K
-
-    /// The data being decoded
-    let context: URLEncodedFormDataContext
-
-    /// See `KeyedDecodingContainerProtocol.`
-    var codingPath: [CodingKey]
-
-    /// See `KeyedDecodingContainerProtocol.`
-    var allKeys: [K] {
-        guard let dictionary = context.data.get(at: codingPath)?.dictionary else {
-            return []
-        }
-        return dictionary.keys.compactMap { K(stringValue: $0) }
-    }
-
-    /// Create a new `_URLEncodedFormKeyedDecoder`
-    init(context: URLEncodedFormDataContext, codingPath: [CodingKey]) {
-        self.context = context
-        self.codingPath = codingPath
-    }
-
-    /// See `KeyedDecodingContainerProtocol.`
-    func contains(_ key: K) -> Bool {
-        return context.data.get(at: codingPath)?.dictionary?[key.stringValue] != nil
-    }
-
-    /// See `KeyedDecodingContainerProtocol.`
-    func decodeNil(forKey key: K) throws -> Bool {
-        return context.data.get(at: codingPath + [key]) == nil
-    }
-
-    /// See `KeyedDecodingContainerProtocol.`
-    func decode<T>(_ type: T.Type, forKey key: K) throws -> T where T: Decodable {
-        if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
-            guard let data = context.data.get(at: codingPath + [key]) else {
-                throw DecodingError.valueNotFound(T.self, at: codingPath + [key])
+        
+        func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
+            if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
+                return try convertible.convertFromURLEncodedFormData(self.data) as! T
+            } else {
+                let decoder = _Decoder(data: data, codingPath: self.codingPath)
+                return try T(from: decoder)
             }
-            return try convertible.convertFromURLEncodedFormData(data) as! T
-        } else {
-            let decoder = _URLEncodedFormDecoder(context: context, codingPath: codingPath + [key])
-            return try T(from: decoder)
         }
     }
-
-    /// See `KeyedDecodingContainerProtocol.`
-    func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: K) throws -> KeyedDecodingContainer<NestedKey>
-        where NestedKey: CodingKey
+    
+    struct KeyedContainer<Key>: KeyedDecodingContainerProtocol
+        where Key: CodingKey
     {
-        return .init(_URLEncodedFormKeyedDecoder<NestedKey>(context: context, codingPath: codingPath + [key]))
-    }
-
-    /// See `KeyedDecodingContainerProtocol.`
-    func nestedUnkeyedContainer(forKey key: K) throws -> UnkeyedDecodingContainer {
-        return _URLEncodedFormUnkeyedDecoder(context: context, codingPath: codingPath + [key])
-    }
-
-    /// See `KeyedDecodingContainerProtocol.`
-    func superDecoder() throws -> Decoder {
-        return _URLEncodedFormDecoder(context: context, codingPath: codingPath)
-    }
-
-    /// See `KeyedDecodingContainerProtocol.`
-    func superDecoder(forKey key: K) throws -> Decoder {
-        return _URLEncodedFormDecoder(context: context, codingPath: codingPath + [key])
-    }
-}
-
-/// Private `UnkeyedDecodingContainer`.
-private final class _URLEncodedFormUnkeyedDecoder: UnkeyedDecodingContainer {
-    /// The data being decoded
-    let context: URLEncodedFormDataContext
-
-    /// See `UnkeyedDecodingContainer`.
-    var codingPath: [CodingKey]
-
-    /// See `UnkeyedDecodingContainer`.
-    var count: Int? {
-        guard let array = context.data.get(at: codingPath)?.array else {
-            return nil
+        let data: [String: URLEncodedFormData]
+        var codingPath: [CodingKey]
+        
+        var allKeys: [Key] {
+            return self.data.keys.compactMap { Key(stringValue: $0) }
         }
-        return array.count
-    }
-
-    /// See `UnkeyedDecodingContainer`.
-    var isAtEnd: Bool {
-        guard let count = self.count else {
-            return true
+        
+        init(data: [String: URLEncodedFormData], codingPath: [CodingKey]) {
+            self.data = data
+            self.codingPath = codingPath
         }
-        return currentIndex >= count
-    }
-
-    /// See `UnkeyedDecodingContainer`.
-    var currentIndex: Int
-
-    /// Converts the current index to a coding key
-    var index: CodingKey {
-        return BasicKey(currentIndex)
-    }
-
-    /// Create a new `_URLEncodedFormUnkeyedDecoder`
-    init(context: URLEncodedFormDataContext, codingPath: [CodingKey]) {
-        self.context = context
-        self.codingPath = codingPath
-        currentIndex = 0
-    }
-
-    /// See `UnkeyedDecodingContainer`.
-    func decodeNil() throws -> Bool {
-        return context.data.get(at: codingPath + [index]) == nil
-    }
-
-    /// See `UnkeyedDecodingContainer`.
-    func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
-        defer { currentIndex += 1 }
-        if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
-            guard let data = context.data.get(at: codingPath + [index]) else {
-                throw DecodingError.valueNotFound(T.self, at: codingPath + [index])
+        
+        func contains(_ key: Key) -> Bool {
+            return self.data[key.stringValue] != nil
+        }
+        
+        func decodeNil(forKey key: Key) throws -> Bool {
+            return self.data[key.stringValue] == nil
+        }
+        
+        func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T: Decodable {
+            guard let data = self.data[key.stringValue] else {
+                throw DecodingError.valueNotFound(T.self, at: self.codingPath + [key])
             }
-            return try convertible.convertFromURLEncodedFormData(data) as! T
-        } else {
-            let decoder = _URLEncodedFormDecoder(context: context, codingPath: codingPath + [index])
-            return try T(from: decoder)
+            if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
+                return try convertible.convertFromURLEncodedFormData(data) as! T
+            } else {
+                let decoder = _Decoder(data: data, codingPath: self.codingPath + [key])
+                return try T(from: decoder)
+            }
+        }
+        
+        func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: Key) throws -> KeyedDecodingContainer<NestedKey>
+            where NestedKey: CodingKey
+        {
+            guard let data = self.data[key.stringValue] else {
+                fatalError()
+            }
+            switch data {
+            case .dict(let dict):
+                return KeyedDecodingContainer(KeyedContainer<NestedKey>(data: dict, codingPath: self.codingPath + [key]))
+            default: fatalError()
+            }
+        }
+        
+        func nestedUnkeyedContainer(forKey key: Key) throws -> UnkeyedDecodingContainer {
+            guard let data = self.data[key.stringValue] else {
+                fatalError()
+            }
+            switch data {
+            case .arr(let arr):
+                return UnkeyedContainer(data: arr, codingPath: self.codingPath + [key])
+            default: fatalError()
+            }
+        }
+        
+        func superDecoder() throws -> Decoder {
+            return _Decoder(data: .dict(self.data), codingPath: self.codingPath)
+        }
+        
+        func superDecoder(forKey key: Key) throws -> Decoder {
+            guard let data = self.data[key.stringValue] else {
+                fatalError()
+            }
+            return _Decoder(data: data, codingPath: self.codingPath + [key])
         }
     }
-
-    /// See `UnkeyedDecodingContainer`.
-    func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type) throws -> KeyedDecodingContainer<NestedKey>
-        where NestedKey: CodingKey
-    {
-        return .init(_URLEncodedFormKeyedDecoder<NestedKey>(context: context, codingPath: codingPath + [index]))
+    
+    struct UnkeyedContainer: UnkeyedDecodingContainer {
+        let data: [URLEncodedFormData]
+        var codingPath: [CodingKey]
+        var count: Int? {
+            return self.data.count
+        }
+        var isAtEnd: Bool {
+            guard let count = self.count else {
+                return true
+            }
+            return currentIndex >= count
+        }
+        var currentIndex: Int
+        
+        init(data: [URLEncodedFormData], codingPath: [CodingKey]) {
+            self.data = data
+            self.codingPath = codingPath
+            self.currentIndex = 0
+        }
+        
+        func decodeNil() throws -> Bool {
+            return false
+        }
+        
+        mutating func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
+            if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
+                return try convertible.convertFromURLEncodedFormData(self.data[self.currentIndex]) as! T
+            } else {
+                let decoder = _Decoder(data: self.data[self.currentIndex], codingPath: self.codingPath)
+                return try T(from: decoder)
+            }
+        }
+        
+        mutating func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type) throws -> KeyedDecodingContainer<NestedKey>
+            where NestedKey: CodingKey
+        {
+            defer { self.currentIndex += 1 }
+            switch self.data[self.currentIndex] {
+            case .dict(let dict):
+                return KeyedDecodingContainer(KeyedContainer<NestedKey>(data: dict, codingPath: self.codingPath))
+            default: fatalError()
+            }
+        }
+        
+        mutating func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
+            defer { self.currentIndex += 1 }
+            switch self.data[self.currentIndex] {
+            case .arr(let arr):
+                return UnkeyedContainer(data: arr, codingPath: self.codingPath)
+            default: fatalError()
+            }
+        }
+        
+        mutating func superDecoder() throws -> Decoder {
+            defer { self.currentIndex += 1 }
+            return _Decoder(data: self.data[self.currentIndex], codingPath: self.codingPath)
+        }
     }
-
-    /// See `UnkeyedDecodingContainer`.
-    func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
-        return _URLEncodedFormUnkeyedDecoder(context: context, codingPath: codingPath + [index])
-    }
-
-    /// See `UnkeyedDecodingContainer`.
-    func superDecoder() throws -> Decoder {
-        defer { currentIndex += 1 }
-        return _URLEncodedFormDecoder(context: context, codingPath: codingPath + [index])
-    }
-
 }
-
-
-// MARK: Utils
 
 private extension DecodingError {
     static func typeMismatch(_ type: Any.Type, at path: [CodingKey]) -> DecodingError {

@@ -1,7 +1,6 @@
-import Debugging
 
 /// Errors thrown while encoding/decoding `application/x-www-form-urlencoded` data.
-public struct URLEncodedFormError: Error, Debuggable {
+public struct URLEncodedFormError: Error {
     /// See Debuggable.identifier
     public let identifier: String
 

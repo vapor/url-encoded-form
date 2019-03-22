@@ -1,17 +1,14 @@
-// swift-tools-version:4.0
+// swift-tools-version:5.0
 import PackageDescription
 
 let package = Package(
-    name: "URLEncodedForm",
+    name: "url-encoded-form",
     products: [
         .library(name: "URLEncodedForm", targets: ["URLEncodedForm"]),
     ],
-    dependencies: [
-        // 🌎 Utility package containing tools for byte manipulation, Codable, OS APIs, and debugging.
-        .package(url: "https://github.com/vapor/core.git", from: "3.0.0"),
-    ],
+    dependencies: [ ],
     targets: [
-        .target(name: "URLEncodedForm", dependencies: ["Core"]),
+        .target(name: "URLEncodedForm"),
         .testTarget(name: "URLEncodedFormTests", dependencies: ["URLEncodedForm"]),
     ]
 )

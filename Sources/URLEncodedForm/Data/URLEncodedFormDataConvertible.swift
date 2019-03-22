@@ -77,7 +77,7 @@ extension Bool: URLEncodedFormDataConvertible {
 
     /// See `URLEncodedFormDataConvertible`.
     static func convertFromURLEncodedFormData(_ data: URLEncodedFormData) throws -> Bool {
-        guard let bool = data.string?.bool else {
+        guard let bool = data.string.flatMap(Bool.init) else {
             throw URLEncodedFormError(identifier: "bool", reason: "Could not convert to Bool: \(data)")
         }
         return bool
