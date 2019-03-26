@@ -53,7 +53,7 @@ public struct URLEncodedFormDecoder {
     /// - returns: An instance of the `Decodable` type (`D`).
     /// - throws: Any error that may occur while attempting to decode the specified type.
     public func decode<D>(_ decodable: D.Type, from string: String) throws -> D where D : Decodable {
-        let urlEncodedFormData = try self.parser.parse(data: string)
+        let urlEncodedFormData = try self.parser.parse(string)
         let decoder = _Decoder(data: .dict(urlEncodedFormData), codingPath: [])
         return try D(from: decoder)
     }

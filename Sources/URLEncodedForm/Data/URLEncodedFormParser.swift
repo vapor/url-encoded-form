@@ -9,7 +9,7 @@ struct URLEncodedFormParser {
         self.omitFlags = omitFlags
     }
 
-    func parse(data: String) throws -> [String: URLEncodedFormData] {
+    func parse(_ data: String) throws -> [String: URLEncodedFormData] {
         let data = data.replacingOccurrences(of: "+", with: " ")
         var encoded: [String: URLEncodedFormData] = [:]
 
