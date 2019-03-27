@@ -20,4 +20,3 @@ class URLEncodedFormSerializerTests: XCTestCase {
         XCTAssertEqual(data, "a[b][c][d][hello]=world")
     }
 }
-
