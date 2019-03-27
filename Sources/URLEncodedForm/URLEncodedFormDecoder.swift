@@ -54,7 +54,7 @@ public struct URLEncodedFormDecoder {
     /// - throws: Any error that may occur while attempting to decode the specified type.
     public func decode<D>(_ decodable: D.Type, from string: String) throws -> D where D : Decodable {
         let urlEncodedFormData = try self.parser.parse(string)
-        let decoder = _Decoder(data: .dict(urlEncodedFormData), codingPath: [])
+        let decoder = _Decoder(data: .dictionary(urlEncodedFormData), codingPath: [])
         return try D(from: decoder)
     }
 }
@@ -72,10 +72,10 @@ private struct _Decoder: Decoder {
     }
 
     /// The data being decoded
-    let data: URLEncodedFormData
+    let data: URLEncodedFormData?
 
     /// Creates a new `_URLEncodedFormDecoder`.
-    init(data: URLEncodedFormData, codingPath: [CodingKey]) {
+    init(data: URLEncodedFormData?, codingPath: [CodingKey]) {
         self.data = data
         self.codingPath = codingPath
     }
@@ -84,8 +84,11 @@ private struct _Decoder: Decoder {
     func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key>
         where Key: CodingKey
     {
-        switch self.data {
-        case .dict(let dict):
+        guard let data = self.data else {
+            fatalError()
+        }
+        switch data {
+        case .dictionary(let dict):
             return KeyedDecodingContainer(KeyedContainer<Key>(data: dict, codingPath: self.codingPath))
         default: fatalError()
         }
@@ -93,16 +96,19 @@ private struct _Decoder: Decoder {
 
     /// See `Decoder`
     func unkeyedContainer() throws -> UnkeyedDecodingContainer {
-        switch self.data {
-        case .arr(let arr):
-            return UnkeyedContainer(data: arr, codingPath: codingPath)
+        guard let data = self.data else {
+            return UnkeyedContainer(data: [], codingPath: self.codingPath)
+        }
+        switch data {
+        case .array(let arr):
+            return UnkeyedContainer(data: arr, codingPath: self.codingPath)
         default: fatalError()
         }
     }
 
     /// See `Decoder`
     func singleValueContainer() throws -> SingleValueDecodingContainer {
-        return SingleValueContainer(data: self.data, codingPath: codingPath)
+        return SingleValueContainer(data: self.data!, codingPath: codingPath)
     }
     
     struct SingleValueContainer: SingleValueDecodingContainer {
@@ -120,7 +126,11 @@ private struct _Decoder: Decoder {
         
         func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
             if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
-                return try convertible.convertFromURLEncodedFormData(self.data) as! T
+                if let data = convertible.init(urlEncodedFormData: self.data) {
+                    return data as! T
+                } else {
+                    throw DecodingError.typeMismatch(T.self, at: self.codingPath)
+                }
             } else {
                 let decoder = _Decoder(data: data, codingPath: self.codingPath)
                 return try T(from: decoder)
@@ -152,13 +162,17 @@ private struct _Decoder: Decoder {
         }
         
         func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T: Decodable {
-            guard let data = self.data[key.stringValue] else {
-                throw DecodingError.valueNotFound(T.self, at: self.codingPath + [key])
-            }
             if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
-                return try convertible.convertFromURLEncodedFormData(data) as! T
+                guard let data = self.data[key.stringValue] else {
+                    throw DecodingError.valueNotFound(T.self, at: self.codingPath + [key])
+                }
+                if let result = convertible.init(urlEncodedFormData: data) {
+                    return result as! T
+                } else {
+                    throw DecodingError.typeMismatch(T.self, at: self.codingPath + [key])
+                }
             } else {
-                let decoder = _Decoder(data: data, codingPath: self.codingPath + [key])
+                let decoder = _Decoder(data: self.data[key.stringValue], codingPath: self.codingPath + [key])
                 return try T(from: decoder)
             }
         }
@@ -170,7 +184,7 @@ private struct _Decoder: Decoder {
                 fatalError()
             }
             switch data {
-            case .dict(let dict):
+            case .dictionary(let dict):
                 return KeyedDecodingContainer(KeyedContainer<NestedKey>(data: dict, codingPath: self.codingPath + [key]))
             default: fatalError()
             }
@@ -181,14 +195,14 @@ private struct _Decoder: Decoder {
                 fatalError()
             }
             switch data {
-            case .arr(let arr):
+            case .array(let arr):
                 return UnkeyedContainer(data: arr, codingPath: self.codingPath + [key])
             default: fatalError()
             }
         }
         
         func superDecoder() throws -> Decoder {
-            return _Decoder(data: .dict(self.data), codingPath: self.codingPath)
+            return _Decoder(data: .dictionary(self.data), codingPath: self.codingPath)
         }
         
         func superDecoder(forKey key: Key) throws -> Decoder {
@@ -224,10 +238,16 @@ private struct _Decoder: Decoder {
         }
         
         mutating func decode<T>(_ type: T.Type) throws -> T where T: Decodable {
+            let data = self.data[self.currentIndex]
+            defer { self.currentIndex += 1 }
             if let convertible = T.self as? URLEncodedFormDataConvertible.Type {
-                return try convertible.convertFromURLEncodedFormData(self.data[self.currentIndex]) as! T
+                if let result = convertible.init(urlEncodedFormData: data) {
+                    return result as! T
+                } else {
+                    throw DecodingError.typeMismatch(T.self, at: self.codingPath)
+                }
             } else {
-                let decoder = _Decoder(data: self.data[self.currentIndex], codingPath: self.codingPath)
+                let decoder = _Decoder(data: data, codingPath: self.codingPath)
                 return try T(from: decoder)
             }
         }
@@ -237,7 +257,7 @@ private struct _Decoder: Decoder {
         {
             defer { self.currentIndex += 1 }
             switch self.data[self.currentIndex] {
-            case .dict(let dict):
+            case .dictionary(let dict):
                 return KeyedDecodingContainer(KeyedContainer<NestedKey>(data: dict, codingPath: self.codingPath))
             default: fatalError()
             }
@@ -246,7 +266,7 @@ private struct _Decoder: Decoder {
         mutating func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
             defer { self.currentIndex += 1 }
             switch self.data[self.currentIndex] {
-            case .arr(let arr):
+            case .array(let arr):
                 return UnkeyedContainer(data: arr, codingPath: self.codingPath)
             default: fatalError()
             }
@@ -264,7 +284,7 @@ private extension DecodingError {
         let pathString = path.map { $0.stringValue }.joined(separator: ".")
         let context = DecodingError.Context(
             codingPath: path,
-            debugDescription: "No \(type) was found at path \(pathString)"
+            debugDescription: "Data found at '\(pathString)' was not \(type)"
         )
         return Swift.DecodingError.typeMismatch(type, context)
     }
@@ -273,7 +293,7 @@ private extension DecodingError {
         let pathString = path.map { $0.stringValue }.joined(separator: ".")
         let context = DecodingError.Context(
             codingPath: path,
-            debugDescription: "No \(type) was found at path \(pathString)"
+            debugDescription: "No \(type) was found at '\(pathString)'"
         )
         return Swift.DecodingError.valueNotFound(type, context)
     }

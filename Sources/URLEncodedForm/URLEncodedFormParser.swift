@@ -1,5 +1,5 @@
 /// Converts `Data` to `[String: URLEncodedFormData]`.
-struct URLEncodedFormParser {
+internal struct URLEncodedFormParser {
     let omitEmptyValues: Bool
     let omitFlags: Bool
     
@@ -9,9 +9,9 @@ struct URLEncodedFormParser {
         self.omitFlags = omitFlags
     }
 
-    func parse(_ data: String) throws -> [String: URLEncodedFormData] {
-        let data = data.replacingOccurrences(of: "+", with: " ")
-        var encoded: [String: URLEncodedFormData] = [:]
+    func parse(_ encoded: String) throws -> [String: URLEncodedFormData] {
+        let data = encoded.replacingOccurrences(of: "+", with: " ")
+        var decoded: [String: URLEncodedFormData] = [:]
 
         for pair in data.split(separator: "&") {
             let data: URLEncodedFormData
@@ -42,7 +42,7 @@ struct URLEncodedFormParser {
                     throw URLEncodedFormError(identifier: "percentDecoding", reason: "Could not percent decode string value: \(token[1])")
                 }
                 key = try parseKey(string: rawKey)
-                data = .str(decodedValue)
+                data = .string(decodedValue)
             } else if token.count == 1 {
                 if omitFlags {
                     continue
@@ -58,16 +58,16 @@ struct URLEncodedFormParser {
 
             let resolved: URLEncodedFormData
             if !key.path.isEmpty {
-                var current = encoded[key.name] ?? .dictionary([:])
+                var current = decoded[key.name] ?? .dictionary([:])
                 self.set(&current, to: data, at: key.path)
                 resolved = current
             } else {
                 resolved = data
             }
-            encoded[key.name] = resolved
+            decoded[key.name] = resolved
         }
 
-        return encoded
+        return decoded
     }
 
     /// Parses a `URLEncodedFormEncodedKey` from `Data`.
@@ -128,7 +128,7 @@ struct URLEncodedFormParser {
 
         switch first {
         case .array:
-            if case .arr(var arr) = base {
+            if case .array(var arr) = base {
                 /// always append
                 arr.append(child)
                 base = .array(arr)
@@ -136,7 +136,7 @@ struct URLEncodedFormParser {
                 base = .array([child])
             }
         case .dictionary(let key):
-            if case .dict(var dict) = base {
+            if case .dictionary(var dict) = base {
                 dict[key] = child
                 base = .dictionary(dict)
             } else {
