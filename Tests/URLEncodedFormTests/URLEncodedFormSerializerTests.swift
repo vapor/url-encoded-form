@@ -11,7 +11,7 @@ class URLEncodedFormSerializerTests: XCTestCase {
     func testPercentEncodingWithAmpersand() throws {
         let form: [String: URLEncodedFormData] = ["aaa": "b%26&b"]
         let data = try URLEncodedFormSerializer.default.serialize(form)
-        XCTAssertEqual(String(data: data, encoding: .utf8)!, "aaa=b%2526&b")
+        XCTAssertEqual(String(data: data, encoding: .utf8)!, "aaa=b%2526%26b")
     }
 
     func testNested() throws {
