@@ -76,6 +76,16 @@ class URLEncodedFormCodableTests: XCTestCase {
         XCTAssertEqual(foo.flag, true)
     }
 
+    /// https://github.com/vapor/url-encoded-form/issues/3
+    func testEncodeReserved() throws {
+        struct Foo: Codable {
+            var reserved: String
+        }
+        let foo = Foo(reserved: "?&=[];+")
+        let data = try URLEncodedFormEncoder().encode(foo)
+        XCTAssertEqual(String(decoding: data, as: UTF8.self), "reserved=%3F%26%3D%5B%5D%3B%2B")
+    }
+
     static let allTests = [
         ("testDecode", testDecode),
         ("testEncode", testEncode),
@@ -83,6 +93,7 @@ class URLEncodedFormCodableTests: XCTestCase {
         ("testDecodeIntArray", testDecodeIntArray),
         ("testRawEnum", testRawEnum),
         ("testGH3", testGH3),
+        ("testEncodeReserved", testEncodeReserved),
     ]
 }
 
