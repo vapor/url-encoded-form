@@ -23,6 +23,22 @@ extension String: URLEncodedFormDataConvertible {
     }
 }
 
+extension URL: URLEncodedFormDataConvertible {
+    /// See `URLEncodedFormDataConvertible`.
+    func convertToURLEncodedFormData() throws -> URLEncodedFormData {
+        return .str(self.absoluteString)
+    }
+
+    /// See `URLEncodedFormDataConvertible`.
+    static func convertFromURLEncodedFormData(_ data: URLEncodedFormData) throws -> URL {
+        guard let url = data.url else {
+            throw URLEncodedFormError(identifier: "url", reason: "Could not convert to `URL`: \(data)")
+        }
+
+        return url
+    }
+}
+
 extension FixedWidthInteger {
     /// See `URLEncodedFormDataConvertible`.
     func convertToURLEncodedFormData() throws -> URLEncodedFormData {
