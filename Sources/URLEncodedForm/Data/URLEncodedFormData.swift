@@ -31,6 +31,14 @@ enum URLEncodedFormData: NestedData, ExpressibleByArrayLiteral, ExpressibleByStr
         }
     }
 
+    /// Converts self to an `URL` or returns `nil` if not convertible.
+    var url: URL? {
+        switch self {
+        case .str(let s): return URL(string: s)
+        default: return nil
+        }
+    }
+
     /// Converts self to an `[URLEncodedFormData]` or returns `nil` if not convertible.
     var array: [URLEncodedFormData]? {
         switch self {
