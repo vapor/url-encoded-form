@@ -69,6 +69,15 @@ class URLEncodedFormCodableTests: XCTestCase {
         XCTAssertEqual(string?.contains("type=cat"), true)
     }
 
+    func testSortedDictionary() throws {
+        let user = User(name: "Tanner", age: 23, pets: ["Zizek", "Foo"], dict: ["a": 1, "b": 2])
+        let encoder = URLEncodedFormEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let data = try encoder.encode(user)
+        let string = String(data: data, encoding: .ascii)
+        XCTAssertEqual(string, "age=23&dict[a]=1&dict[b]=2&name=Tanner&pets[]=Zizek&pets[]=Foo")
+    }
+
     /// https://github.com/vapor/url-encoded-form/issues/3
     func testGH3() throws {
         struct Foo: Codable {
@@ -94,6 +103,7 @@ class URLEncodedFormCodableTests: XCTestCase {
         ("testCodable", testCodable),
         ("testDecodeIntArray", testDecodeIntArray),
         ("testRawEnum", testRawEnum),
+        ("testSortedDictionary", testSortedDictionary),
         ("testGH3", testGH3),
         ("testEncodeReserved", testEncodeReserved),
     ]

@@ -11,6 +11,23 @@
 /// See [Mozilla's](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods/POST) docs for more information about
 /// url-encoded forms.
 public final class URLEncodedFormEncoder: DataEncoder {
+    /// The formatting of the output data.
+    public struct OutputFormatting : OptionSet {
+        /// The format's default value.
+        public let rawValue: UInt
+        
+        /// Creates an OutputFormatting value with the given raw value.
+        public init(rawValue: UInt) {
+            self.rawValue = rawValue
+        }
+        
+        /// Produce output with dictionary keys sorted in lexicographic order.
+        public static let sortedKeys = OutputFormatting(rawValue: 1 << 1)
+    }
+
+    /// The output format to produce. Defaults to `[]`.
+    public var outputFormatting: OutputFormatting = []
+    
     /// Create a new `URLEncodedFormEncoder`.
     public init() {}
 
@@ -28,7 +45,7 @@ public final class URLEncodedFormEncoder: DataEncoder {
         let context = URLEncodedFormDataContext(.dict([:]))
         let encoder = _URLEncodedFormEncoder(context: context, codingPath: [])
         try encodable.encode(to: encoder)
-        let serializer = URLEncodedFormSerializer()
+        let serializer = URLEncodedFormSerializer(sortedKeys: self.outputFormatting.contains(.sortedKeys))
         guard case .dict(let dict) = context.data else {
             throw URLEncodedFormError(
                 identifier: "invalidTopLevel",
